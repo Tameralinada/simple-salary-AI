@@ -1,0 +1,780 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Finance Manager</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.7.2/font/bootstrap-icons.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        :root {
+            --nav-bg: #2c3e50;
+            --nav-hover: #34495e;
+        }
+        .navbar {
+            background-color: var(--nav-bg);
+            padding: 1rem;
+        }
+        .navbar-brand {
+            color: white !important;
+            font-weight: bold;
+            font-size: 1.5rem;
+        }
+        .nav-link {
+            color: rgba(255,255,255,0.8) !important;
+            transition: all 0.3s ease;
+        }
+        .nav-link:hover {
+            color: white !important;
+            background-color: var(--nav-hover);
+            border-radius: 5px;
+        }
+        .nav-link.active {
+            color: white !important;
+            background-color: var(--nav-hover);
+            border-radius: 5px;
+        }
+        .content-section {
+            display: none;
+            padding: 20px 0;
+        }
+        .content-section.active {
+            display: block;
+        }
+        .transaction-form {
+            max-width: 500px;
+            margin: 20px auto;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        }
+        .transactions-list {
+            max-width: 900px;
+            margin: 20px auto;
+        }
+        .category-badge {
+            padding: 5px 10px;
+            border-radius: 15px;
+            font-size: 0.9em;
+        }
+        .category-Essential { background-color: #d4edda; color: #155724; }
+        .category-Luxury { background-color: #f8d7da; color: #721c24; }
+        .category-Salary { background-color: #cce5ff; color: #004085; }
+        .category-Services { background-color: #fff3cd; color: #856404; }
+        .category-Investments { background-color: #e2e3e5; color: #383d41; }
+        .alert {
+            display: none;
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 1000;
+            animation: fadeIn 0.5s;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .chart-container {
+            margin: 20px 0;
+            padding: 20px;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        }
+        .total-summary {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+        .filters {
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+    </style>
+</head>
+<body class="bg-light">
+    <!-- Navigation Bar -->
+    <nav class="navbar navbar-expand-lg navbar-dark">
+        <div class="container">
+            <a class="navbar-brand" href="#" data-section="dashboard">
+                <i class="bi bi-wallet2"></i> Finance Manager
+            </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav me-auto">
+                    <li class="nav-item">
+                        <a class="nav-link active" href="#" data-section="dashboard">
+                            <i class="bi bi-house"></i> Home
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#" data-section="income-calculator">
+                            <i class="bi bi-calculator"></i> Income Calculator
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#" data-section="transactions">
+                            <i class="bi bi-cash-stack"></i> Transactions
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#" data-section="analytics">
+                            <i class="bi bi-graph-up"></i> Analytics
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#" data-section="export">
+                            <i class="bi bi-download"></i> Export
+                        </a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Alert for feedback -->
+    <div class="alert alert-success" role="alert" id="feedbackAlert">
+        <i class="bi bi-check-circle-fill"></i>
+        <span id="alertMessage"></span>
+    </div>
+
+    <div class="container mt-4">
+        <!-- Dashboard Section -->
+        <div id="dashboard" class="content-section active">
+            <h2 class="mb-4">Financial Dashboard</h2>
+            <div class="total-summary">
+                <div class="row">
+                    <div class="col-md-3">
+                        <h5>Total Income</h5>
+                        <p class="h4 text-success" id="totalIncome">€0.00</p>
+                    </div>
+                    <div class="col-md-3">
+                        <h5>Total Expenses</h5>
+                        <p class="h4 text-danger" id="totalExpenses">€0.00</p>
+                    </div>
+                    <div class="col-md-3">
+                        <h5>Balance</h5>
+                        <p class="h4" id="balance">€0.00</p>
+                    </div>
+                    <div class="col-md-3">
+                        <h5>Total Tax</h5>
+                        <p class="h4 text-info" id="totalTax">€0.00</p>
+                    </div>
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="chart-container">
+                        <h4>Spending by Category</h4>
+                        <canvas id="categoryChart"></canvas>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="chart-container">
+                        <h4>Monthly Trends</h4>
+                        <canvas id="trendChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Income Calculator Section -->
+        <div id="income-calculator" class="content-section">
+            <h2 class="mb-4">Income Calculator</h2>
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="chart-container">
+                        <h4>Calculate Your Budget</h4>
+                        <form id="incomeCalculatorForm">
+                            <div class="mb-3">
+                                <label class="form-label">Gross Monthly Income (€)</label>
+                                <div class="input-group">
+                                    <span class="input-group-text">€</span>
+                                    <input type="number" class="form-control" id="grossIncome" required min="0" step="0.01">
+                                </div>
+                            </div>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="bi bi-calculator"></i> Calculate
+                            </button>
+                        </form>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="chart-container">
+                        <h4>Results</h4>
+                        <div id="calculationResults">
+                            <!-- Results will be displayed here -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="row mt-4">
+                <div class="col-12">
+                    <div class="chart-container">
+                        <h4>Budget Breakdown</h4>
+                        <canvas id="budgetBreakdownChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Transactions Section -->
+        <div id="transactions" class="content-section">
+            <h2 class="mb-4">Manage Transactions</h2>
+            <div class="transaction-form bg-white">
+                <h4>Add New Transaction</h4>
+                <form id="transactionForm">
+                    <div class="mb-3">
+                        <label for="description" class="form-label">Description</label>
+                        <input type="text" class="form-control" id="description" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="amount" class="form-label">Amount (€)</label>
+                        <div class="input-group">
+                            <span class="input-group-text">€</span>
+                            <input type="number" step="0.01" class="form-control" id="amount" required>
+                        </div>
+                    </div>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="bi bi-plus-circle"></i> Add Transaction
+                    </button>
+                </form>
+            </div>
+            <div class="filters">
+                <h4>Filters</h4>
+                <div class="row">
+                    <div class="col-md-3">
+                        <label class="form-label">Category</label>
+                        <select class="form-select" id="categoryFilter">
+                            <option value="">All Categories</option>
+                            <option value="Essential">Essential</option>
+                            <option value="Luxury">Luxury</option>
+                            <option value="Salary">Salary</option>
+                            <option value="Services">Services</option>
+                            <option value="Investments">Investments</option>
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">Date Range</label>
+                        <select class="form-select" id="dateFilter">
+                            <option value="7">Last 7 days</option>
+                            <option value="30" selected>Last 30 days</option>
+                            <option value="90">Last 90 days</option>
+                            <option value="180">Last 180 days</option>
+                            <option value="365">Last year</option>
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">Min Amount (€)</label>
+                        <input type="number" class="form-control" id="minAmount">
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">Max Amount (€)</label>
+                        <input type="number" class="form-control" id="maxAmount">
+                    </div>
+                </div>
+                <div class="mt-3">
+                    <button class="btn btn-primary" onclick="applyFilters()">
+                        <i class="bi bi-funnel"></i> Apply Filters
+                    </button>
+                    <button class="btn btn-outline-secondary" onclick="resetFilters()">
+                        <i class="bi bi-arrow-counterclockwise"></i> Reset
+                    </button>
+                </div>
+            </div>
+            <div class="table-responsive">
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>Date</th>
+                            <th>Description</th>
+                            <th>Amount (€)</th>
+                            <th>Category</th>
+                            <th>Tax Amount (€)</th>
+                        </tr>
+                    </thead>
+                    <tbody id="transactionsList">
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Budgets Section -->
+        <div id="budgets" class="content-section">
+            <h2 class="mb-4">Budget Management</h2>
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="chart-container">
+                        <h4>Budget Settings</h4>
+                        <form id="budgetForm">
+                            <div class="mb-3">
+                                <label class="form-label">Category</label>
+                                <select class="form-select" id="budgetCategory" required>
+                                    <option value="Essential">Essential</option>
+                                    <option value="Luxury">Luxury</option>
+                                    <option value="Services">Services</option>
+                                    <option value="Investments">Investments</option>
+                                </select>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Monthly Limit (€)</label>
+                                <input type="number" class="form-control" id="monthlyLimit" required min="0" step="0.01">
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Alert Threshold (%)</label>
+                                <input type="number" class="form-control" id="alertThreshold" required min="0" max="100" value="80">
+                            </div>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="bi bi-gear"></i> Set Budget
+                            </button>
+                        </form>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="chart-container">
+                        <h4>Budget Status</h4>
+                        <div id="budgetStatus" class="list-group">
+                            <!-- Budget status items will be added here -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Analytics Section -->
+        <div id="analytics" class="content-section">
+            <h2 class="mb-4">Financial Analytics</h2>
+            <div class="row">
+                <div class="col-md-12 mb-4">
+                    <div class="chart-container">
+                        <h4>Spending Trends</h4>
+                        <div class="btn-group mb-3">
+                            <button class="btn btn-outline-secondary btn-sm" onclick="updateCategoryChart(30)">30 Days</button>
+                            <button class="btn btn-outline-secondary btn-sm" onclick="updateCategoryChart(90)">90 Days</button>
+                            <button class="btn btn-outline-secondary btn-sm" onclick="updateCategoryChart(180)">180 Days</button>
+                        </div>
+                        <canvas id="analyticsChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Export Section -->
+        <div id="export" class="content-section">
+            <h2 class="mb-4">Export Data</h2>
+            <div class="chart-container">
+                <form id="exportForm" class="row g-3">
+                    <div class="col-md-4">
+                        <label class="form-label">Start Date</label>
+                        <input type="date" class="form-control" id="exportStartDate">
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">End Date</label>
+                        <input type="date" class="form-control" id="exportEndDate">
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Format</label>
+                        <select class="form-select" id="exportFormat">
+                            <option value="csv">CSV</option>
+                            <option value="excel">Excel</option>
+                        </select>
+                    </div>
+                    <div class="col-12">
+                        <button type="submit" class="btn btn-success">
+                            <i class="bi bi-download"></i> Export
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Navigation handling
+        document.querySelectorAll('.nav-link').forEach(link => {
+            link.addEventListener('click', (e) => {
+                e.preventDefault();
+                // Update active nav link
+                document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
+                link.classList.add('active');
+                
+                // Show corresponding section
+                const sectionId = link.getAttribute('data-section');
+                document.querySelectorAll('.content-section').forEach(section => {
+                    section.classList.remove('active');
+                });
+                document.getElementById(sectionId).classList.add('active');
+            });
+        });
+
+        // Chart instances
+        let categoryChart = null;
+        let trendChart = null;
+        let budgetBreakdownChart = null;
+
+        // Show alert feedback
+        function showAlert(message, type = 'success') {
+            const alert = document.getElementById('feedbackAlert');
+            const alertMessage = document.getElementById('alertMessage');
+            alert.className = `alert alert-${type}`;
+            alertMessage.textContent = message;
+            alert.style.display = 'block';
+            setTimeout(() => {
+                alert.style.display = 'none';
+            }, 3000);
+        }
+
+        // Initialize charts
+        function initializeCharts() {
+            // Category Chart
+            const categoryCtx = document.getElementById('categoryChart').getContext('2d');
+            categoryChart = new Chart(categoryCtx, {
+                type: 'doughnut',
+                data: {
+                    labels: [],
+                    datasets: [{
+                        data: [],
+                        backgroundColor: [
+                            '#d4edda',
+                            '#f8d7da',
+                            '#fff3cd',
+                            '#e2e3e5',
+                            '#cce5ff'
+                        ]
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: {
+                            position: 'right'
+                        }
+                    }
+                }
+            });
+
+            // Trend Chart
+            const trendCtx = document.getElementById('trendChart').getContext('2d');
+            trendChart = new Chart(trendCtx, {
+                type: 'line',
+                data: {
+                    labels: [],
+                    datasets: [
+                        {
+                            label: 'Income',
+                            data: [],
+                            borderColor: '#28a745',
+                            fill: false
+                        },
+                        {
+                            label: 'Expenses',
+                            data: [],
+                            borderColor: '#dc3545',
+                            fill: false
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    scales: {
+                        y: {
+                            beginAtZero: true
+                        }
+                    }
+                }
+            });
+        }
+
+        // Initialize budget breakdown chart
+        function initializeBudgetBreakdownChart() {
+            const ctx = document.getElementById('budgetBreakdownChart').getContext('2d');
+            budgetBreakdownChart = new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: [],
+                    datasets: [{
+                        data: [],
+                        backgroundColor: [
+                            '#28a745',  // Essential
+                            '#007bff',  // Savings
+                            '#dc3545'   // Discretionary
+                        ]
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: {
+                            position: 'right'
+                        }
+                    }
+                }
+            });
+        }
+
+        // Update category chart
+        async function updateCategoryChart(days) {
+            try {
+                const response = await fetch(`/analytics/spending_by_category?days=${days}`);
+                if (response.ok) {
+                    const data = await response.json();
+                    categoryChart.data.labels = data.categories;
+                    categoryChart.data.datasets[0].data = data.amounts;
+                    categoryChart.update();
+                }
+            } catch (error) {
+                console.error('Error updating category chart:', error);
+                showAlert('Error updating chart', 'danger');
+            }
+        }
+
+        // Update trend chart
+        async function updateTrendChart() {
+            try {
+                const response = await fetch('/analytics/monthly_trends');
+                if (response.ok) {
+                    const data = await response.json();
+                    trendChart.data.labels = data.labels;
+                    trendChart.data.datasets[0].data = data.income;
+                    trendChart.data.datasets[1].data = data.expenses;
+                    trendChart.update();
+                }
+            } catch (error) {
+                console.error('Error updating trend chart:', error);
+                showAlert('Error updating chart', 'danger');
+            }
+        }
+
+        // Update budget breakdown chart
+        function updateBudgetBreakdownChart(data) {
+            const labels = Object.keys(data.budget_allocations);
+            const amounts = Object.values(data.budget_allocations).map(cat => cat.amount);
+
+            budgetBreakdownChart.data.labels = labels;
+            budgetBreakdownChart.data.datasets[0].data = amounts;
+            budgetBreakdownChart.update();
+        }
+
+        // Apply filters
+        function applyFilters() {
+            const category = document.getElementById('categoryFilter').value;
+            const days = document.getElementById('dateFilter').value;
+            const minAmount = document.getElementById('minAmount').value;
+            const maxAmount = document.getElementById('maxAmount').value;
+
+            let url = '/transactions?';
+            if (category) url += `category=${category}&`;
+            if (days) {
+                const startDate = new Date();
+                startDate.setDate(startDate.getDate() - parseInt(days));
+                url += `start_date=${startDate.toISOString().split('T')[0]}&`;
+            }
+            if (minAmount) url += `min_amount=${minAmount}&`;
+            if (maxAmount) url += `max_amount=${maxAmount}&`;
+
+            loadTransactions(url);
+        }
+
+        // Reset filters
+        function resetFilters() {
+            document.getElementById('categoryFilter').value = '';
+            document.getElementById('dateFilter').value = '30';
+            document.getElementById('minAmount').value = '';
+            document.getElementById('maxAmount').value = '';
+            loadTransactions('/transactions');
+        }
+
+        // Calculate and update summary
+        function updateSummary(transactions) {
+            let totalIncome = 0;
+            let totalExpenses = 0;
+            let totalTax = 0;
+
+            transactions.forEach(t => {
+                if (t.category === 'Salary') {
+                    totalIncome += t.amount;
+                } else {
+                    totalExpenses += t.amount;
+                }
+                totalTax += t.tax_amount;
+            });
+
+            document.getElementById('totalIncome').textContent = `€${totalIncome.toFixed(2)}`;
+            document.getElementById('totalExpenses').textContent = `€${totalExpenses.toFixed(2)}`;
+            document.getElementById('balance').textContent = `€${(totalIncome - totalExpenses).toFixed(2)}`;
+            document.getElementById('totalTax').textContent = `€${totalTax.toFixed(2)}`;
+        }
+
+        // Display transactions in the table
+        function displayTransactions(transactions) {
+            const tbody = document.getElementById('transactionsList');
+            tbody.innerHTML = '';
+            
+            transactions.forEach(t => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>${new Date(t.date).toLocaleString()}</td>
+                    <td>${t.description}</td>
+                    <td>€${t.amount.toFixed(2)}</td>
+                    <td><span class="category-badge category-${t.category}">${t.category}</span></td>
+                    <td>€${t.tax_amount.toFixed(2)}</td>
+                `;
+                tbody.appendChild(row);
+            });
+        }
+
+        // Load and display transactions
+        async function loadTransactions(url = '/transactions') {
+            try {
+                const response = await fetch(url);
+                if (response.ok) {
+                    const transactions = await response.json();
+                    displayTransactions(transactions);
+                    updateSummary(transactions);
+                }
+            } catch (error) {
+                console.error('Error loading transactions:', error);
+                showAlert('Error loading transactions', 'danger');
+            }
+        }
+
+        // Handle form submission
+        document.getElementById('transactionForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const description = document.getElementById('description').value;
+            const amount = document.getElementById('amount').value;
+
+            try {
+                const response = await fetch('/classify_transaction', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ description, amount: parseFloat(amount) }),
+                });
+
+                if (response.ok) {
+                    const result = await response.json();
+                    showAlert(`Transaction added successfully! Category: ${result.category}`);
+                    document.getElementById('description').value = '';
+                    document.getElementById('amount').value = '';
+                    loadTransactions();
+                    updateCategoryChart(30);
+                    updateTrendChart();
+                } else {
+                    showAlert('Error adding transaction', 'danger');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                showAlert('Error adding transaction', 'danger');
+            }
+        });
+
+        // Income calculator form handling
+        document.getElementById('incomeCalculatorForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const grossIncome = document.getElementById('grossIncome').value;
+
+            try {
+                const response = await fetch('/calculate_income', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ gross_income: parseFloat(grossIncome) }),
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    displayCalculationResults(data);
+                    updateBudgetBreakdownChart(data);
+                } else {
+                    showAlert('Error calculating income', 'danger');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                showAlert('Error calculating income', 'danger');
+            }
+        });
+
+        function displayCalculationResults(data) {
+            const resultsDiv = document.getElementById('calculationResults');
+            resultsDiv.innerHTML = `
+                <div class="list-group">
+                    <div class="list-group-item">
+                        <div class="d-flex justify-content-between">
+                            <strong>Gross Income:</strong>
+                            <span>€${data.gross_income.toFixed(2)}</span>
+                        </div>
+                    </div>
+                    <div class="list-group-item">
+                        <div class="mb-2"><strong>Deductions:</strong></div>
+                        <div class="ms-3 mb-2">
+                            <div class="d-flex justify-content-between">
+                                <span>Income Tax:</span>
+                                <span>€${data.deductions.income_tax.toFixed(2)}</span>
+                            </div>
+                        </div>
+                        <div class="ms-3">
+                            <div><strong>Social Security:</strong></div>
+                            ${Object.entries(data.deductions.social_security.details).map(([name, amount]) => `
+                                <div class="d-flex justify-content-between">
+                                    <span>${name.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}:</span>
+                                    <span>€${amount.toFixed(2)}</span>
+                                </div>
+                            `).join('')}
+                            <div class="d-flex justify-content-between mt-2">
+                                <strong>Total Social Security:</strong>
+                                <span>€${data.deductions.social_security.total.toFixed(2)}</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="list-group-item">
+                        <div class="d-flex justify-content-between">
+                            <strong>Net Income:</strong>
+                            <span>€${data.net_income.toFixed(2)}</span>
+                        </div>
+                    </div>
+                    <div class="list-group-item">
+                        <div class="mb-2"><strong>Budget Allocations:</strong></div>
+                        ${Object.entries(data.budget_allocations).map(([category, details]) => `
+                            <div class="mb-3">
+                                <div class="d-flex justify-content-between">
+                                    <strong>${category}:</strong>
+                                    <span>€${details.amount.toFixed(2)} (${details.percentage}%)</span>
+                                </div>
+                                <div class="ms-3 small">
+                                    <div class="text-muted">${details.description}</div>
+                                    <div class="mt-1"><strong>Subcategories:</strong></div>
+                                    ${Object.entries(details.subcategories).map(([subcat, amount]) => `
+                                        <div class="d-flex justify-content-between">
+                                            <span>${subcat}:</span>
+                                            <span>€${amount.toFixed(2)}</span>
+                                        </div>
+                                    `).join('')}
+                                </div>
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+            `;
+        }
+
+        // Initialize when page loads
+        document.addEventListener('DOMContentLoaded', () => {
+            initializeCharts();
+            initializeBudgetBreakdownChart();
+            loadTransactions();
+            updateCategoryChart(30);
+            updateTrendChart();
+        });
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
